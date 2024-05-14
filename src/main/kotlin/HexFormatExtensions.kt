@@ -63,3 +63,7 @@ private val HEX_DIGITS_TO_LONG_DECIMAL = LongArray(256) { -1 }.apply {
 
 private const val LOWER_CASE_HEX_DIGITS = "0123456789abcdef"
 private const val UPPER_CASE_HEX_DIGITS = "0123456789ABCDEF"
+
+internal val BYTE_TO_LOWER_CASE_HEX_DIGITS = IntArray(256) {
+    (LOWER_CASE_HEX_DIGITS[(it shr 4)].code shl 8) or LOWER_CASE_HEX_DIGITS[(it and 0xF)].code
+}

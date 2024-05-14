@@ -27,7 +27,7 @@ benchmark {
             include("ByteBufferBench")
         }
         register("format") {
-            include("FormatBench.*ToString")
+            include("FormatBench")
         }
     }
     targets {
