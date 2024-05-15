@@ -5,40 +5,78 @@ import java.nio.ByteOrder
 import java.security.SecureRandom
 
 public class UUID private constructor(
-    val mostSignificantBits: Long,
-    val leastSignificantBits: Long
+    private val mostSignificantBits: Long,
+    private val leastSignificantBits: Long
 ) {
 
     override fun toString(): String {
-        return uuidToString(this)
+        val bytes = ByteArray(36)
+        leastSignificantBits.formatBytesInto(bytes, 24, 6)
+        bytes[23] = '-'.code.toByte()
+        (leastSignificantBits ushr 48).formatBytesInto(bytes, 19, 2)
+        bytes[18] = '-'.code.toByte()
+        mostSignificantBits.formatBytesInto(bytes, 14, 2)
+        bytes[13] = '-'.code.toByte()
+        (mostSignificantBits ushr 16).formatBytesInto(bytes, 9, 2)
+        bytes[8] = '-'.code.toByte()
+        (mostSignificantBits ushr 32).formatBytesInto(bytes, 0, 4)
+        return bytes.decodeToString()
     }
 
     public fun toHexString(): String {
-        return uuidToHexString(this)
+        val bytes = ByteArray(32)
+        leastSignificantBits.formatBytesInto(bytes, 16, 8)
+        mostSignificantBits.formatBytesInto(bytes, 0, 8)
+        return bytes.decodeToString()
     }
 
     public fun toByteArray(): ByteArray {
-        return uuidToByteArray(this)
+        val bytes = ByteArray(SIZE_BYTES)
+        mostSignificantBits.toByteArray(bytes, 0)
+        leastSignificantBits.toByteArray(bytes, 8)
+        return bytes
     }
 
     companion object {
         public fun fromLongs(mostSignificantBits: Long, leastSignificantBits: Long): UUID =
             UUID(mostSignificantBits, leastSignificantBits)
 
-        public fun fromByteArray(byteArray: ByteArray): UUID =
-            UUID(byteArray.toLong(startIndex = 0), byteArray.toLong(startIndex = 8))
+        public fun fromByteArray(byteArray: ByteArray): UUID {
+            require(byteArray.size == SIZE_BYTES) { "Expected exactly $SIZE_BYTES bytes" }
+
+            return UUID(byteArray.toLong(startIndex = 0), byteArray.toLong(startIndex = 8))
+        }
 
         public const val SIZE_BYTES: Int = 16
 
-        public fun parse(uuidString: String): UUID =
-            uuidFromString(uuidString)
+        public fun parse(uuidString: String): UUID {
+            require(uuidString.length == 36) { "Expected a 36-char string in the standard UUID format." }
 
-        public fun parseHex(hexString: String): UUID =
-            uuidFromHexString(hexString)
+            val part1 = uuidString.hexToLong(startIndex = 0, endIndex = 8)
+            uuidString.checkHyphenAt(8)
+            val part2 = uuidString.hexToLong(startIndex = 9, endIndex = 13)
+            uuidString.checkHyphenAt(13)
+            val part3 = uuidString.hexToLong(startIndex = 14, endIndex = 18)
+            uuidString.checkHyphenAt(18)
+            val part4 = uuidString.hexToLong(startIndex = 19, endIndex = 23)
+            uuidString.checkHyphenAt(23)
+            val part5 = uuidString.hexToLong(startIndex = 24, endIndex = 36)
 
-        public fun random(): UUID {
-            return secureRandomUUID()
+            val msb = (part1 shl 32) or (part2 shl 16) or part3
+            val lsb = (part4 shl 48) or part5
+            return UUID(msb, lsb)
         }
+
+        public fun parseHex(hexString: String): UUID {
+            require(hexString.length == 32) { "Expected a 32-char hexadecimal string." }
+
+            val msb = hexString.hexToLong(startIndex = 0, endIndex = 16)
+            val lsb = hexString.hexToLong(startIndex = 16, endIndex = 32)
+            return UUID(msb, lsb)
+        }
+
+        public fun random(): UUID =
+            secureRandomUUID()
     }
 }
 
@@ -77,21 +115,6 @@ public inline fun ByteBuffer.getUUID_ByteArray(): UUID {
     return UUID.fromByteArray(bytes)
 }
 
-internal fun uuidToString(uuid: UUID): String = with(uuid) {
-    val bytes = ByteArray(36)
-    leastSignificantBits.formatBytesInto(bytes, 24, 6)
-    bytes[23] = '-'.code.toByte()
-    (leastSignificantBits ushr 48).formatBytesInto(bytes, 19, 2)
-    bytes[18] = '-'.code.toByte()
-    mostSignificantBits.formatBytesInto(bytes, 14, 2)
-    bytes[13] = '-'.code.toByte()
-    (mostSignificantBits ushr 16).formatBytesInto(bytes, 9, 2)
-    bytes[8] = '-'.code.toByte()
-    (mostSignificantBits ushr 32).formatBytesInto(bytes, 0, 4)
-
-    return bytes.decodeToString()
-}
-
 private fun Long.formatBytesInto(dst: ByteArray, dstOffset: Int, count: Int) {
     var long = this
     var dstIndex = dstOffset + 2 * count
@@ -104,20 +127,6 @@ private fun Long.formatBytesInto(dst: ByteArray, dstOffset: Int, count: Int) {
     }
 }
 
-internal fun uuidToHexString(uuid: UUID): String = with(uuid) {
-    val bytes = ByteArray(32)
-    leastSignificantBits.formatBytesInto(bytes, 16, 8)
-    mostSignificantBits.formatBytesInto(bytes, 0, 8)
-    return bytes.decodeToString()
-}
-
-internal fun uuidToByteArray(uuid: UUID): ByteArray = with(uuid) {
-    val bytes = ByteArray(UUID.SIZE_BYTES)
-    mostSignificantBits.toByteArray(bytes, 0)
-    leastSignificantBits.toByteArray(bytes, 8)
-    return bytes
-}
-
 private fun Long.toByteArray(dst: ByteArray, dstOffset: Int) {
     for (index in 0 until 8) {
         val shift = 8 * (7 - index)
@@ -125,33 +134,8 @@ private fun Long.toByteArray(dst: ByteArray, dstOffset: Int) {
     }
 }
 
-internal fun uuidFromString(uuidString: String): UUID {
-    require(uuidString.length == 36) { "Expected a 36-char string in the standard UUID format." }
-
-    val part1 = uuidString.hexToLong(startIndex = 0, endIndex = 8)
-    uuidString.checkHyphenAt(8)
-    val part2 = uuidString.hexToLong(startIndex = 9, endIndex = 13)
-    uuidString.checkHyphenAt(13)
-    val part3 = uuidString.hexToLong(startIndex = 14, endIndex = 18)
-    uuidString.checkHyphenAt(18)
-    val part4 = uuidString.hexToLong(startIndex = 19, endIndex = 23)
-    uuidString.checkHyphenAt(23)
-    val part5 = uuidString.hexToLong(startIndex = 24, endIndex = 36)
-
-    val msb = (part1 shl 32) or (part2 shl 16) or part3
-    val lsb = (part4 shl 48) or part5
-    return UUID.fromLongs(msb, lsb)
-}
-
-internal fun uuidFromHexString(hexString: String): UUID {
-    require(hexString.length == 32) { "Expected a 32-char hexadecimal string." }
-    val msb = hexString.hexToLong(startIndex = 0, endIndex = 16)
-    val lsb = hexString.hexToLong(startIndex = 16, endIndex = 32)
-    return UUID.fromLongs(msb, lsb)
-}
-
 private fun String.checkHyphenAt(index: Int) {
-    require(this[8] == '-') { "Expected '-' (hyphen) at index 8, but was ${this[index]}" }
+    require(this[index] == '-') { "Expected '-' (hyphen) at index 8, but was ${this[index]}" }
 }
 
 private val secureRandom by lazy { SecureRandom() }
