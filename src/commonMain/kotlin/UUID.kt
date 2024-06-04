@@ -1,9 +1,5 @@
 package uuid
 
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.security.SecureRandom
-
 public class UUID private constructor(
     private val mostSignificantBits: Long,
     private val leastSignificantBits: Long
@@ -76,7 +72,7 @@ public class UUID private constructor(
         }
 
         public fun random(): UUID =
-            secureRandomUUID()
+            secureRandomUuid()
     }
 }
 
@@ -89,30 +85,6 @@ private fun ByteArray.toLong(startIndex: Int): Long {
             ((this[startIndex + 5].toLong() and 0xFF) shl 16) or
             ((this[startIndex + 6].toLong() and 0xFF) shl 8) or
             (this[startIndex + 7].toLong() and 0xFF)
-}
-
-@Suppress("NOTHING_TO_INLINE")
-public inline fun ByteBuffer.getUUID_Long(): UUID {
-    val msb: Long
-    val lsb: Long
-    if (order() == ByteOrder.BIG_ENDIAN) {
-        msb = getLong()
-        lsb = getLong()
-    } else {
-        lsb = getLong()
-        msb = getLong()
-    }
-    return UUID.fromLongs(msb, lsb)
-}
-
-@Suppress("NOTHING_TO_INLINE")
-public inline fun ByteBuffer.getUUID_ByteArray(): UUID {
-    val bytes = ByteArray(16)
-    get(bytes)
-    if (order() == ByteOrder.LITTLE_ENDIAN) {
-        bytes.reverse()
-    }
-    return UUID.fromByteArray(bytes)
 }
 
 private fun Long.formatBytesInto(dst: ByteArray, dstOffset: Int, count: Int) {
@@ -138,14 +110,6 @@ private fun String.checkHyphenAt(index: Int) {
     require(this[index] == '-') { "Expected '-' (hyphen) at index 8, but was ${this[index]}" }
 }
 
-private val secureRandom by lazy { SecureRandom() }
-
-internal fun secureRandomUUID(): UUID {
-    val randomBytes = ByteArray(UUID.SIZE_BYTES)
-    secureRandom.nextBytes(randomBytes)
-    return uuidFromRandomBytes(randomBytes)
-}
-
 internal fun uuidFromRandomBytes(randomBytes: ByteArray): UUID {
     randomBytes[6] = (randomBytes[6].toInt() and 0x0f).toByte() /* clear version        */
     randomBytes[6] = (randomBytes[6].toInt() or 0x40).toByte()  /* set to version 4     */
@@ -153,3 +117,5 @@ internal fun uuidFromRandomBytes(randomBytes: ByteArray): UUID {
     randomBytes[8] = (randomBytes[8].toInt() or 0x80).toByte()  /* set to IETF variant  */
     return UUID.fromByteArray(randomBytes)
 }
+
+internal expect fun secureRandomUuid(): UUID

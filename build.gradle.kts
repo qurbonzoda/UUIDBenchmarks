@@ -1,6 +1,8 @@
+import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+
 plugins {
-    kotlin("jvm") version "1.9.23"
-    id("org.jetbrains.kotlinx.benchmark") version "0.4.10"
+    kotlin("multiplatform") version "2.0.0"
+    id("org.jetbrains.kotlinx.benchmark") version "0.4.11"
 }
 
 group = "uuid"
@@ -10,15 +12,22 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-benchmark-runtime:0.4.10")
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
+@OptIn(ExperimentalWasmDsl::class)
 kotlin {
     jvmToolchain(17)
+
+    jvm()
+    wasmJs {
+        nodejs()
+    }
+
+    sourceSets {
+        commonMain {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-benchmark-runtime:0.4.11")
+            }
+        }
+    }
 }
 
 benchmark {
@@ -29,8 +38,12 @@ benchmark {
         register("format") {
             include("FormatBench")
         }
+        register("randomUuid") {
+            include("RandomUuidBench")
+        }
     }
     targets {
-        register("main")
+        register("jvm")
+        register("wasmJs")
     }
 }
