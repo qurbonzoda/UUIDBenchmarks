@@ -8,12 +8,12 @@ import kotlinx.benchmark.*
 @Warmup(iterations = 10, time = 1, timeUnit = BenchmarkTimeUnit.SECONDS)
 class RandomUuidBench {
     @Benchmark
-    fun randomUuid(): UUID {
-        return secureRandomUuid()
+    fun crypto_randomUUID(): UUID {
+        return secureRandomUuid_randomUUID()
     }
 
     @Benchmark
-    fun randomUuid_getRandomValues(): UUID {
+    fun crypto_getRandomValues(): UUID {
         return secureRandomUUID_getRandomValues()
     }
 }
