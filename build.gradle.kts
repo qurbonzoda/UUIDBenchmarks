@@ -1,4 +1,4 @@
-import org.jetbrains.kotlin.gradle.targets.js.dsl.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
     kotlin("multiplatform") version "2.0.21"
@@ -12,12 +12,15 @@ repositories {
     mavenCentral()
 }
 
-@OptIn(ExperimentalWasmDsl::class)
 kotlin {
     jvmToolchain(17)
 
     jvm()
+    @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
+        nodejs()
+    }
+    js {
         nodejs()
     }
 
@@ -36,7 +39,8 @@ benchmark {
             include("ByteBufferBench")
         }
         register("format") {
-            include("FormatBench")
+            include("FormatBench.*ToString.*")
+            include("FormatBench.*Parse")
         }
         register("randomUuid") {
             include("RandomUuidBench")
@@ -45,5 +49,6 @@ benchmark {
     targets {
         register("jvm")
         register("wasmJs")
+        register("js")
     }
 }

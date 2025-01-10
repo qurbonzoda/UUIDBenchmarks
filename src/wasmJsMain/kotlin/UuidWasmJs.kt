@@ -1,7 +1,7 @@
 package uuid
 
 internal actual fun secureRandomUuid(): UUID =
-    secureRandomUuid_randomUUID()
+    secureRandomUUID_getRandomValues()
 
 internal fun secureRandomUuid_randomUUID(): UUID {
     val uuidString = crypto.randomUUID()
@@ -26,3 +26,17 @@ internal fun secureRandomUUID_getRandomValues(): UUID {
     return uuidFromRandomBytes(randomBytes)
 }
 
+internal actual fun ByteArray.toLong(startIndex: Int): Long =
+    toLongCommonImpl(startIndex)
+
+internal actual fun Long.formatBytesInto(dst: ByteArray, dstOffset: Int, startIndex: Int, endIndex: Int) =
+    formatBytesIntoCommonImpl(dst, dstOffset, startIndex, endIndex)
+
+internal actual fun Long.toByteArray(dst: ByteArray, dstOffset: Int) =
+    toByteArrayCommonImpl(dst, dstOffset)
+
+internal actual fun uuidParseHexDash(hexDashString: String): UUID =
+    uuidParseHexDashCommonImpl(hexDashString)
+
+internal actual fun uuidParseHex(hexString: String): UUID =
+    uuidParseHexCommonImpl(hexString)
